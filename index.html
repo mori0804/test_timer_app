@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多機能タイマー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .timer-display {
+            font-size: 4em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 30px 0;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            background: rgba(236, 240, 241, 0.8);
+            border-radius: 15px;
+            border: 3px solid #ecf0f1;
+        }
+
+        .timer-display.running {
+            color: #e74c3c;
+            border-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .timer-display.paused {
+            color: #f39c12;
+            border-color: #f39c12;
+            background: rgba(243, 156, 18, 0.1);
+        }
+
+        .input-section {
+            margin: 30px 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .input-group label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 70px;
+            padding: 12px;
+            font-size: 1.5em;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+        }
+
+        .btn-stop {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .btn-pause {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .btn-reset {
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .status.running {
+            color: #e74c3c;
+        }
+
+        .status.paused {
+            color: #f39c12;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .timer-display {
+                font-size: 2.5em;
+            }
+
+            .input-group input {
+                width: 60px;
+                padding: 10px;
+                font-size: 1.2em;
+            }
+
+            .btn {
+                padding: 12px 20px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>多機能タイマー</h1>
+        
+        <div class="timer-display" id="display">00:00:00</div>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label for="hours">時</label>
+                <input type="number" id="hours" min="0" max="99" value="0">
+            </div>
+            <div class="input-group">
+                <label for="minutes">分</label>
+                <input type="number" id="minutes" min="0" max="59" value="0">
+            </div>
+            <div class="input-group">
+                <label for="seconds">秒</label>
+                <input type="number" id="seconds" min="0" max="59" value="0">
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-start" id="startBtn">スタート</button>
+            <button class="btn btn-pause" id="pauseBtn" disabled>ポーズ</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>ストップ</button>
+            <button class="btn btn-reset" id="resetBtn">リセット</button>
+        </div>
+        
+        <div class="status" id="status">停止中</div>
+    </div>
+
+    <script>
+        class Timer {
+            constructor() {
+                this.totalSeconds = 0;
+                this.remainingSeconds = 0;
+                this.interval = null;
+                this.state = 'stopped'; // stopped, running, paused
+                
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.display = document.getElementById('display');
+                this.hoursInput = document.getElementById('hours');
+                this.minutesInput = document.getElementById('minutes');
+                this.secondsInput = document.getElementById('seconds');
+                this.startBtn = document.getElementById('startBtn');
+                this.pauseBtn = document.getElementById('pauseBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.status = document.getElementById('status');
+            }
+
+            bindEvents() {
+                this.startBtn.addEventListener('click', () => this.start());
+                this.pauseBtn.addEventListener('click', () => this.pause());
+                this.stopBtn.addEventListener('click', () => this.stop());
+                this.resetBtn.addEventListener('click', () => this.reset());
+                
+                // 入力値の検証
+                [this.hoursInput, this.minutesInput, this.secondsInput].forEach(input => {
+                    input.addEventListener('input', () => this.validateInput(input));
+                    input.addEventListener('blur', () => this.formatInput(input));
+                });
+            }
+
+            validateInput(input) {
+                const value = parseInt(input.value);
+                const min = parseInt(input.min);
+                const max = parseInt(input.max);
+                
+                if (isNaN(value) || value < min) {
+                    input.value = min;
+                } else if (value > max) {
+                    input.value = max;
+                }
+            }
+
+            formatInput(input) {
+                const value = parseInt(input.value) || 0;
+                input.value = value.toString().padStart(2, '0');
+            }
+
+            getInputTime() {
+                const hours = parseInt(this.hoursInput.value) || 0;
+                const minutes = parseInt(this.minutesInput.value) || 0;
+                const seconds = parseInt(this.secondsInput.value) || 0;
+                
+                return hours * 3600 + minutes * 60 + seconds;
+            }
+
+            formatTime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            updateDisplay() {
+                this.display.textContent = this.formatTime(this.remainingSeconds);
+            }
+
+            updateUI() {
+                // ディスプレイのスタイル更新
+                this.display.className = 'timer-display';
+                if (this.state === 'running') {
+                    this.display.classList.add('running');
+                } else if (this.state === 'paused') {
+                    this.display.classList.add('paused');
+                }
+
+                // ボタンの状態更新
+                this.startBtn.disabled = this.state === 'running';
+                this.pauseBtn.disabled = this.state !== 'running';
+                this.stopBtn.disabled = this.state === 'stopped';
+                
+                // 入力フィールドの状態更新
+                const inputsDisabled = this.state !== 'stopped';
+                this.hoursInput.disabled = inputsDisabled;
+                this.minutesInput.disabled = inputsDisabled;
+                this.secondsInput.disabled = inputsDisabled;
+
+                // ステータス更新
+                this.status.className = 'status';
+                switch (this.state) {
+                    case 'running':
+                        this.status.textContent = '実行中';
+                        this.status.classList.add('running');
+                        break;
+                    case 'paused':
+                        this.status.textContent = '一時停止中';
+                        this.status.classList.add('paused');
+                        break;
+                    case 'stopped':
+                        this.status.textContent = '停止中';
+                        break;
+                }
+            }
+
+            start() {
+                if (this.state === 'stopped') {
+                    this.totalSeconds = this.getInputTime();
+                    if (this.totalSeconds === 0) {
+                        alert('時間を設定してください');
+                        return;
+                    }
+                    this.remainingSeconds = this.totalSeconds;
+                }
+
+                this.state = 'running';
+                this.interval = setInterval(() => {
+                    this.remainingSeconds--;
+                    this.updateDisplay();
+                    
+                    if (this.remainingSeconds <= 0) {
+                        this.complete();
+                    }
+                }, 1000);
+
+                this.updateUI();
+            }
+
+            pause() {
+                if (this.state === 'running') {
+                    this.state = 'paused';
+                    clearInterval(this.interval);
+                    this.updateUI();
+                }
+            }
+
+            stop() {
+                this.state = 'stopped';
+                clearInterval(this.interval);
+                this.remainingSeconds = 0;
+                this.updateDisplay();
+                this.updateUI();
+            }
+
+            reset() {
+                this.state = 'stopped';
+                clearInterval(this.interval);
+                this.remainingSeconds = 0;
+                this.hoursInput.value = '00';
+                this.minutesInput.value = '00';
+                this.secondsInput.value = '00';
+                this.updateDisplay();
+                this.updateUI();
+            }
+
+            complete() {
+                this.state = 'stopped';
+                clearInterval(this.interval);
+                this.remainingSeconds = 0;
+                this.updateDisplay();
+                this.updateUI();
+                
+                // 完了通知
+                alert('タイマーが完了しました！');
+                
+                // 可能であれば音を鳴らす
+                if ('AudioContext' in window || 'webkitAudioContext' in window) {
+                    this.playNotificationSound();
+                }
+            }
+
+            playNotificationSound() {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    const audioContext = new AudioContext();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                } catch (e) {
+                    console.log('音声再生に失敗しました:', e);
+                }
+            }
+        }
+
+        // タイマーを初期化
+        const timer = new Timer();
+    </script>
+</body>
+</html>
